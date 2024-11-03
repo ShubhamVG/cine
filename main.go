@@ -26,7 +26,7 @@ func main() {
 	defer fmt.Println("\u001b[0m") // reset coloring before exiting
 
 	filePath := flag.String("file", "", "image/video file to asciify")
-	saveFolder := flag.String("save", "./colorz-out", "folder where files are saved")
+	saveFolder := flag.String("save", "./cine-out", "folder where files are saved")
 	isGrayscale := flag.Bool("grayscale", false, "display as grayscaled or not")
 	useNoFont := flag.Bool("no-font", false, "only color the background with no text")
 	characters := flag.String("charset", "", "characters to use (for lightest to darkest pixels)")
