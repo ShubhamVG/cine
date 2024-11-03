@@ -26,6 +26,7 @@ go run . -file <path_to_image_or_video> [-save <output_directory>] [-grayscale] 
 | `-grayscale` | If specified, the output will be displayed in grayscale instead of color (classic). |
 | `-no-font` | If specified, only colors the background without printing any text characters. |
 | `-charset` | Custom characters to use for ASCII representation (from lightest to darkest pixels). |
+
 Example: `go run . -file furret.jpg` will print ![furret example](./GitHub%20Assets/furret.png)
 
 ## Known bugs & FAQs
