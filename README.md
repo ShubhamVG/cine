@@ -27,8 +27,7 @@ go run . -file <path_to_image_or_video> [-save <output_directory>] [-grayscale] 
 | `-no-font` | If specified, only colors the background without printing any text characters. |
 | `-charset` | Custom characters to use for ASCII representation (from lightest to darkest pixels). |
 
-Example: `go run . -file furret.jpg` will print
-![furret example](./GitHub%20Assets/furret.png)
+Example: `go run . -file furret.jpg` will print ![furret example](https://github.com/ShubhamVG/cine/GitHub%20Assets/furret.png)
 
 ## Known bugs & FAQs
 1. **Why are there extra black pixels?** or **The output looks the same as last one even after resizing the terminal. Why?**
