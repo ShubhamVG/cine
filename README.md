@@ -42,7 +42,6 @@ Ans. I will organize the code some other time.
 - Add flags like `no-save` or make `save=''` not save anything.
 - More flags probably.
 - Add more comments and documentation or _hire an unpaid intern to write them for me_ (inside joke).
-- Add flag like `-folder` to use the images saved from `-save`.
 
 ## Contributions
 Fork the repo, make changes, submit PR, you know the drill. If you don't, then learn Git(Hub) or try [my quickstart that I wrote for a friend](https://github.com/ShubhamVG/git-for-maalkin-ji).
