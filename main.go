@@ -129,7 +129,10 @@ func asciifyImage(
 
 		for x := range width {
 			pixel := img.At(int(x), int(y))
-			r, g, b, _ := pixel.RGBA()
+			r32, g32, b32, _ := pixel.RGBA()
+			r := uint8(r32/256)
+			g := uint8(g32/256)
+			b := uint8(b32/256)
 
 			gray := (r+g+b) / 3
 			intensity := float64(gray) / 0xffff
@@ -184,7 +187,10 @@ func noFontAsciifyImage(
 		for x := range width {
 			pixel := img.At(int(x), int(y))
 			var r64Str, g64Str, b64Str string
-			r, g, b, _ := pixel.RGBA()
+			r32, g32, b32, _ := pixel.RGBA()
+			r := uint8(r32/256)
+			g := uint8(g32/256)
+			b := uint8(b32/256)
 
 			if isGrayscale {
 				gray := (r+g+b) / 3
