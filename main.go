@@ -56,6 +56,10 @@ func main() {
 			fmt.Println(err)
 		}
 		fatalExit("Failed to get terminal size")
+	} else {
+		// let's not take the entire space of the terminal
+		// TODO: add a flag to adjust this
+		termHeight = uint(float64(termHeight) * 0.75)
 	}
 
 	fileExt := filepath.Ext(*infilePath)
@@ -73,6 +77,7 @@ func main() {
 	err = os.Mkdir(*saveFolder, 0770)
 	if errors.Is(err, os.ErrExist) {
 		// TODO: fetch the frames and skip rendering
+
 	} else if err != nil {
 		if *isVerbose {
 			fmt.Println(err)
@@ -158,8 +163,17 @@ func main() {
 	wg.Wait()
 	fmt.Println(time.Since(start))
 
+	// go to linestart and then no %d lines up
+	restartCommand := fmt.Sprintf("\r\u001b[%dA", termHeight)
+
 	if numberOfFrames > 1 {
-		return
+		for {
+			for frameNumber := range numberOfFrames {
+				fmt.Print(asciiFrames[frameNumber])
+				time.Sleep(time.Millisecond * 50) // TODO: make dynamic FPS
+				fmt.Print(restartCommand)
+			}
+		}
 	} else {
 		fmt.Println(asciiFrames[0])
 	}
@@ -196,7 +210,7 @@ func asciifyImage(
 			b := uint8(b32 / 256)
 
 			gray := (r + g + b) / 3
-			intensity := float64(gray) / 0xffff
+			intensity := float64(gray) / 0xff
 			char := string(characters[int(intensity*float64(len(characters)-1))])
 
 			if toColor {
