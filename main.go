@@ -190,17 +190,20 @@ func asciifyImage(
 
 		for x := range width {
 			pixel := img.At(int(x), int(y))
-			r, g, b, _ := pixel.RGBA()
+			r32, g32, b32, _ := pixel.RGBA()
+			r := uint8(r32 / 256)
+			g := uint8(g32 / 256)
+			b := uint8(b32 / 256)
 
 			gray := (r + g + b) / 3
 			intensity := float64(gray) / 0xffff
 			char := string(characters[int(intensity*float64(len(characters)-1))])
 
 			if toColor {
-				r64Str := strconv.FormatUint(uint64(r), 10)
-				g64Str := strconv.FormatUint(uint64(g), 10)
-				b64Str := strconv.FormatUint(uint64(b), 10)
-				rowStr += "\u001b[38;2;" + r64Str + ";" + g64Str + ";" + b64Str + "m" + char
+				rAsStr := strconv.FormatUint(uint64(r), 10)
+				gAsStr := strconv.FormatUint(uint64(g), 10)
+				bAsStr := strconv.FormatUint(uint64(b), 10)
+				rowStr += "\u001b[38;2;" + rAsStr + ";" + gAsStr + ";" + bAsStr + "m" + char
 			} else {
 				rowStr += char
 			}
@@ -236,18 +239,20 @@ func noFontAsciifyImage(
 
 		for x := range width {
 			pixel := img.At(int(x), int(y))
-			var r64Str, g64Str, b64Str string
-			r, g, b, _ := pixel.RGBA()
+			r32, g32, b32, _ := pixel.RGBA()
+			r := uint8(r32 / 256)
+			g := uint8(g32 / 256)
+			b := uint8(b32 / 256)
 
 			if isGrayscale {
 				gray := (r + g + b) / 3
 				grayStr := strconv.FormatUint(uint64(gray), 10)
 				rowStr += "\u001b[48;2;" + grayStr + ";" + grayStr + ";" + grayStr + "m "
 			} else {
-				r64Str = strconv.FormatUint(uint64(r), 10)
-				g64Str = strconv.FormatUint(uint64(g), 10)
-				b64Str = strconv.FormatUint(uint64(b), 10)
-				rowStr += "\u001b[48;2;" + r64Str + ";" + g64Str + ";" + b64Str + "m "
+				rAsStr := strconv.FormatUint(uint64(r), 10)
+				gAsStr := strconv.FormatUint(uint64(g), 10)
+				bAsStr := strconv.FormatUint(uint64(b), 10)
+				rowStr += "\u001b[48;2;" + rAsStr + ";" + gAsStr + ";" + bAsStr + "m "
 			}
 		}
 
