@@ -4,29 +4,29 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"image"
-	_ "image/gif"
-	_ "image/jpeg"
 	"image/png"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
+	"time"
 )
 
 const (
 	fontWHRatio = 0.5
 
-	defScaledImgName    = "scaled-out.png"
 	colorAsciiChars     = "*"
 	grayscaleAsciiChars = "@#%*+=-;:. "
 )
 
 func main() {
-	defer fmt.Println("\u001b[0m") // reset coloring before exiting
+	start := time.Now()
 
-	filePath := flag.String("file", "", "image/video file to asciify")
-	saveFolder := flag.String("save", "./cine-out", "folder where files are saved")
+	infilePath := flag.String("file", "", "image/video file to asciify")
+	isVerbose := flag.Bool("verbose", false, "print verbose logs")
+	saveFolder := flag.String("save", "", "folder where files are saved")
 	isGrayscale := flag.Bool("grayscale", false, "display as grayscaled or not")
 	useNoFont := flag.Bool("no-font", false, "only color the background with no text")
 	characters := flag.String("charset", "", "characters to use (for lightest to darkest pixels)")
@@ -42,29 +42,42 @@ func main() {
 
 	termWidth, termHeight, err := getTerminalSize()
 	if err != nil {
+		if *isVerbose {
+			fmt.Println(err)
+		}
 		fatalExit("Failed to get terminal size")
+	} else {
+		// let's not take the entire space of the terminal
+		// TODO: add a flag to adjust this
+		termHeight = uint(float64(termHeight) * 0.75)
+	}
+
+	fileExt := filepath.Ext(*infilePath)
+
+	if *saveFolder == "" {
+		*saveFolder = "cine-out"
+		extStartingIndex := len(*infilePath) - len(fileExt)
+		fileNameNoExt := (*infilePath)[:extStartingIndex]
+		fileNameNoExt += strconv.FormatUint(uint64(termWidth), 10)
+		fileNameNoExt += "x" + strconv.FormatUint(uint64(termHeight), 10)
+		*saveFolder += "-" + fileNameNoExt
 	}
 
 	// ignore error caused by already exists
-	err = os.Mkdir(*saveFolder, 0777)
-	if err != nil && !errors.Is(err, os.ErrExist) {
+	err = os.Mkdir(*saveFolder, 0770)
+	if errors.Is(err, os.ErrExist) {
+		// TODO: fetch the frames and skip rendering
+	} else if err != nil {
+		if *isVerbose {
+			fmt.Println(err)
+		}
 		fatalExit("Failed to create save directory")
 	}
 
-	inpFile, err := os.Open(*filePath)
+	imgWidth, imgHeight, err := getVMediaFileDimensions(*infilePath)
 	if err != nil {
-		fatalExit("Failed to open -file")
+		fatalExit("Failed to get input file's dimensions")
 	}
-
-	defer inpFile.Close()
-
-	img, _, err := image.Decode(inpFile)
-	if err != nil {
-		fatalExit("Failed to read the -file image")
-	}
-
-	imgHeight := img.Bounds().Dy()
-	imgWidth := img.Bounds().Dx()
 
 	termWHRatio := float64(termWidth) / float64(termHeight)
 	imgWHRatio := float64(imgWidth) / float64(imgHeight)
@@ -80,38 +93,89 @@ func main() {
 		asciiWidth = uint(float64(asciiHeight) * imgWHRatio * (1 / fontWHRatio))
 	}
 
-	var ascii string
+	fmt.Println(time.Since(start))
+	start = time.Now()
+
+	numberOfFrames, err := resizeAndSaveFrames(*infilePath, *saveFolder, asciiWidth, asciiHeight)
+	if err != nil {
+		if *isVerbose {
+			fmt.Println(err)
+		}
+		fatalExit("Failed to extract frames from -file")
+	}
+
+	asciiFrames := make([]string, numberOfFrames)
+	var wg sync.WaitGroup
+	wg.Add(int(numberOfFrames))
+
+	fmt.Println(time.Since(start))
+	start = time.Now()
 
 	if *useNoFont {
-		ascii, err = noFontAsciifyImage(*filePath, *saveFolder, asciiWidth, asciiHeight, *isGrayscale)
+		for frameNumber := range numberOfFrames {
+			go func(i uint, wgPtr *sync.WaitGroup) {
+				defer wgPtr.Done()
+
+				fName := *saveFolder + "/frame-" + fmt.Sprintf("%06d", i+1) + ".png"
+				ascii, err := noFontAsciifyImage(fName, asciiWidth, asciiHeight, *isGrayscale)
+
+				if err != nil {
+					if *isVerbose {
+						fmt.Println(err)
+					}
+					fatalExit(err.Error())
+				}
+
+				asciiFrames[i] = ascii
+			}(frameNumber, &wg)
+		}
 	} else {
-		ascii, err = asciifyImage(*filePath, *saveFolder, asciiWidth, asciiHeight, *characters, !*isGrayscale)
+		for frameNumber := range numberOfFrames {
+			go func(i uint, wgPtr *sync.WaitGroup) {
+				defer wgPtr.Done()
+
+				fName := *saveFolder + "/frame-" + fmt.Sprintf("%06d", i+1) + ".png"
+				ascii, err := asciifyImage(fName, asciiWidth, asciiHeight, *characters, !*isGrayscale)
+
+				if err != nil {
+					if *isVerbose {
+						fmt.Println(err)
+					}
+					fatalExit(err.Error())
+				}
+
+				asciiFrames[i] = ascii
+			}(frameNumber, &wg)
+		}
 	}
 
-	if err != nil {
-		fatalExit(err.Error())
-	}
+	wg.Wait()
+	fmt.Println(time.Since(start))
 
-	//_ = ascii
-	fmt.Println(ascii)
+	// go to linestart and then no %d lines up
+	restartCommand := fmt.Sprintf("\r\u001b[%dA", termHeight)
+
+	if numberOfFrames > 1 {
+		for {
+			for frameNumber := range numberOfFrames {
+				fmt.Print(asciiFrames[frameNumber])
+				time.Sleep(time.Millisecond * 50) // TODO: make dynamic FPS
+				fmt.Print(restartCommand)
+			}
+		}
+	} else {
+		fmt.Println(asciiFrames[0])
+	}
 }
 
 func asciifyImage(
-	filePath string,
-	saveFolder string,
+	infilePath string,
 	width uint,
 	height uint,
 	characters string,
 	toColor bool,
 ) (string, error) {
-	scaledFilePath := saveFolder + "/" + defScaledImgName
-	err := resizeAndSaveImg(filePath, scaledFilePath, width, height)
-
-	if err != nil {
-		return "", errors.New("resize image failed")
-	}
-
-	imgFile, err := os.Open(scaledFilePath)
+	imgFile, err := os.Open(infilePath)
 	if err != nil {
 		return "", errors.New("ffmpeg-scaled image opening failed")
 	}
@@ -130,45 +194,37 @@ func asciifyImage(
 		for x := range width {
 			pixel := img.At(int(x), int(y))
 			r32, g32, b32, _ := pixel.RGBA()
-			r := uint8(r32/256)
-			g := uint8(g32/256)
-			b := uint8(b32/256)
+			r := uint8(r32 / 256)
+			g := uint8(g32 / 256)
+			b := uint8(b32 / 256)
 
-			gray := (r+g+b) / 3
-			intensity := float64(gray) / 0xffff
+			gray := (r + g + b) / 3
+			intensity := float64(gray) / 0xff
 			char := string(characters[int(intensity*float64(len(characters)-1))])
 
 			if toColor {
-				r64Str := strconv.FormatUint(uint64(r), 10)
-				g64Str := strconv.FormatUint(uint64(g), 10)
-				b64Str := strconv.FormatUint(uint64(b), 10)
-				rowStr += "\u001b[38;2;" + r64Str + ";" + g64Str + ";" + b64Str + "m" + char
+				rAsStr := strconv.FormatUint(uint64(r), 10)
+				gAsStr := strconv.FormatUint(uint64(g), 10)
+				bAsStr := strconv.FormatUint(uint64(b), 10)
+				rowStr += "\u001b[38;2;" + rAsStr + ";" + gAsStr + ";" + bAsStr + "m" + char
 			} else {
 				rowStr += char
 			}
 		}
 
-		asciiString += rowStr + "\n"
+		asciiString += rowStr + "\u001b[0m\n"
 	}
 
 	return asciiString, nil
 }
 
 func noFontAsciifyImage(
-	filePath string,
-	saveFolder string,
+	infilePath string,
 	width uint,
 	height uint,
 	isGrayscale bool,
 ) (string, error) {
-	scaledFilePath := saveFolder + "/" + defScaledImgName
-	err := resizeAndSaveImg(filePath, scaledFilePath, width, height)
-
-	if err != nil {
-		return "", errors.New("resize image failed")
-	}
-
-	imgFile, err := os.Open(scaledFilePath)
+	imgFile, err := os.Open(infilePath)
 	if err != nil {
 		return "", errors.New("ffmpeg-scaled image opening failed")
 	}
@@ -186,36 +242,46 @@ func noFontAsciifyImage(
 
 		for x := range width {
 			pixel := img.At(int(x), int(y))
-			var r64Str, g64Str, b64Str string
 			r32, g32, b32, _ := pixel.RGBA()
-			r := uint8(r32/256)
-			g := uint8(g32/256)
-			b := uint8(b32/256)
+			r := uint8(r32 / 256)
+			g := uint8(g32 / 256)
+			b := uint8(b32 / 256)
 
 			if isGrayscale {
-				gray := (r+g+b) / 3
+				gray := (r + g + b) / 3
 				grayStr := strconv.FormatUint(uint64(gray), 10)
 				rowStr += "\u001b[48;2;" + grayStr + ";" + grayStr + ";" + grayStr + "m "
 			} else {
-				r64Str = strconv.FormatUint(uint64(r), 10)
-				g64Str = strconv.FormatUint(uint64(g), 10)
-				b64Str = strconv.FormatUint(uint64(b), 10)
-				rowStr += "\u001b[48;2;" + r64Str + ";" + g64Str + ";" + b64Str + "m "
+				rAsStr := strconv.FormatUint(uint64(r), 10)
+				gAsStr := strconv.FormatUint(uint64(g), 10)
+				bAsStr := strconv.FormatUint(uint64(b), 10)
+				rowStr += "\u001b[48;2;" + rAsStr + ";" + gAsStr + ";" + bAsStr + "m "
 			}
 		}
 
-		asciiString += rowStr + "\n"
+		asciiString += rowStr + "\u001b[0m\n"
 	}
 
 	return asciiString, nil
 }
 
-func resizeAndSaveImg(filePath string, savePath string, width uint, height uint) error {
+func resizeAndSaveFrames(infilePath string, saveFolder string, width uint, height uint) (uint, error) {
 	scaleString := "scale=" + strconv.FormatUint(uint64(width), 10) + ":" + strconv.FormatUint(uint64(height), 10)
-	ffmpegCmd := exec.Command("ffmpeg", "-i", filePath, "-vf", scaleString, savePath)
+	ffmpegCmd := exec.Command("ffmpeg", "-i", infilePath, "-vf", scaleString, saveFolder+"/frame-%06d.png")
 	_, err := ffmpegCmd.Output()
 
-	return err
+	if err != nil {
+		return 0, errors.New("failed to extract & resize frame")
+	}
+
+	dir, err := os.Open(saveFolder)
+	if !errors.Is(err, os.ErrExist) && err != nil {
+		return 0, err
+	}
+
+	files, err := dir.ReadDir(-1) // -1 means read everything
+
+	return uint(len(files)), err
 }
 
 func fatalExit(msg string) {
@@ -246,4 +312,28 @@ func getTerminalSize() (uint, uint, error) {
 	}
 
 	return uint(rowSize), uint(colSize), nil
+}
+
+func getVMediaFileDimensions(infilePath string) (uint, uint, error) {
+	cmd := exec.Command("ffprobe", "-v", "error", "-show_entries", "stream=width,height", "-of", "csv=p=0:s=' '", infilePath)
+	cmd.Stdin = os.Stdin
+	out, err := cmd.Output()
+
+	if err != nil {
+		return 0, 0, err
+	}
+
+	parts := strings.Fields(string(out))
+	if len(parts) != 2 {
+		return 0, 0, errors.New("expected result from ffprobe while getting dimensions: " + string(out))
+	}
+
+	width, widthErr := strconv.ParseUint(parts[0], 10, 32)
+	height, heightErr := strconv.ParseUint(parts[1], 10, 32)
+
+	if widthErr != nil || heightErr != nil {
+		return 0, 0, errors.New("vmedia width/height parsing uint failed")
+	}
+
+	return uint(width), uint(height), nil
 }
