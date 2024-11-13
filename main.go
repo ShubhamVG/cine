@@ -14,15 +14,6 @@ import (
 	"time"
 )
 
-type AsciiConverter func(
-	infilePath string,
-	saveFolder string,
-	width uint,
-	height uint,
-	characters string,
-	toColor bool,
-) (string, error)
-
 const (
 	fontWHRatio = 0.5
 
@@ -32,7 +23,6 @@ const (
 
 func main() {
 	start := time.Now()
-	defer fmt.Println("\u001b[0m") // reset coloring before exiting
 
 	infilePath := flag.String("file", "", "image/video file to asciify")
 	isVerbose := flag.Bool("verbose", false, "print verbose logs")
@@ -77,7 +67,6 @@ func main() {
 	err = os.Mkdir(*saveFolder, 0770)
 	if errors.Is(err, os.ErrExist) {
 		// TODO: fetch the frames and skip rendering
-
 	} else if err != nil {
 		if *isVerbose {
 			fmt.Println(err)
@@ -223,7 +212,7 @@ func asciifyImage(
 			}
 		}
 
-		asciiString += rowStr + "\n"
+		asciiString += rowStr + "\u001b[0m\n"
 	}
 
 	return asciiString, nil
@@ -270,7 +259,7 @@ func noFontAsciifyImage(
 			}
 		}
 
-		asciiString += rowStr + "\n"
+		asciiString += rowStr + "\u001b[0m\n"
 	}
 
 	return asciiString, nil
