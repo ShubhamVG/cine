@@ -1,12 +1,12 @@
 # Cine
-Utility that let's you convert images and videos (WIP) to ASCII art. (Only tested on Linux right now.)
+Utility that let's you convert images and videos to ASCII art. (Only tested on Linux right now.)
 
 ## Overview
 Written in Go, `cine` first scales the input image/gif/video to images/frames of the same size as that of the terminal and then converts those into ASCII and then prints them on the screen in a loop. The output can be displayed in the terminal with color glyphs or as grayscale or as just colors (kinda like `timg` but pixelated), depending on flags included. Oh, it uses ANSI BTW (like how I use arch BTW).
 
 ### Features
 - Convert images and videos to ASCII art.
-- Supports `jpeg`, `jpg`, `png` along with others like `gif` and `video formats in progress.
+- Supports everything `ffmpeg` can handle.
 - Support for colored & grayscale with both color and without color output.
 - Customizable character sets for ASCII representation.
 - Automatic resizing based on terminal dimensions.
@@ -37,11 +37,11 @@ Ans. Well, this is a known bug and it is because, the way the program is written
 Ans. I will organize the code some other time.
 
 ## TODO
-- GIF and video support.
 - Reuse the saved folders.
 - Add flags like `no-save` or make `save=''` not save anything.
 - More flags probably.
 - Add more comments and documentation or _hire an unpaid intern to write them for me_ (inside joke).
+- ~~GIF and video support.~~
 
 ## Contributions
 Fork the repo, make changes, submit PR, you know the drill. If you don't, then learn Git(Hub) or try [my quickstart that I wrote for a friend](https://github.com/ShubhamVG/git-for-maalkin-ji).
