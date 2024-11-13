@@ -30,7 +30,7 @@ go run . -file <path_to_image_or_video> [-save <output_directory>] [-grayscale] 
 ### Examples
 `go run . -file furret.jpg` will print ![furret example](./GitHub%20Assets/furret.png)
 
-`go run . -file furret-dance.gif` will print [![furret dance example](./GitHub%20Assets/furret.png)](./GitHub%20Assets/furret-dance.mp4)
+`go run . -file furret-dance.gif` will print [furret dance example](./GitHub%20Assets/furret-dance.mp4)
 
 ## Known bugs & FAQs
 1. **Why are there extra black pixels?** or **The output looks the same as last one even after resizing the terminal. Why?**
