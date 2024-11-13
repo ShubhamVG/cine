@@ -22,7 +22,7 @@ const (
 )
 
 func main() {
-	start := time.Now()
+	// start := time.Now()
 
 	infilePath := flag.String("file", "", "image/video file to asciify")
 	isVerbose := flag.Bool("verbose", false, "print verbose logs")
@@ -93,8 +93,8 @@ func main() {
 		asciiWidth = uint(float64(asciiHeight) * imgWHRatio * (1 / fontWHRatio))
 	}
 
-	fmt.Println(time.Since(start))
-	start = time.Now()
+	// fmt.Println(time.Since(start))
+	// start = time.Now()
 
 	numberOfFrames, err := resizeAndSaveFrames(*infilePath, *saveFolder, asciiWidth, asciiHeight)
 	if err != nil {
@@ -108,8 +108,8 @@ func main() {
 	var wg sync.WaitGroup
 	wg.Add(int(numberOfFrames))
 
-	fmt.Println(time.Since(start))
-	start = time.Now()
+	// fmt.Println(time.Since(start))
+	// start = time.Now()
 
 	if *useNoFont {
 		for frameNumber := range numberOfFrames {
@@ -150,7 +150,7 @@ func main() {
 	}
 
 	wg.Wait()
-	fmt.Println(time.Since(start))
+	// fmt.Println(time.Since(start))
 
 	// go to linestart and then no %d lines up
 	restartCommand := fmt.Sprintf("\r\u001b[%dA", termHeight)
@@ -159,7 +159,7 @@ func main() {
 		for {
 			for frameNumber := range numberOfFrames {
 				fmt.Print(asciiFrames[frameNumber])
-				time.Sleep(time.Millisecond * 50) // TODO: make dynamic FPS
+				time.Sleep(time.Millisecond * 70) // TODO: make dynamic FPS
 				fmt.Print(restartCommand)
 			}
 		}
