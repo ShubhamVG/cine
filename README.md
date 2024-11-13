@@ -2,7 +2,7 @@
 Utility that let's you convert images and videos to ASCII art. (Only tested on Linux right now.)
 
 ## Overview
-Written in Go, `cine` first scales the input image/gif/video to images/frames of the same size as that of the terminal and then converts those into ASCII and then prints them on the screen in a loop. The output can be displayed in the terminal with color glyphs or as grayscale or as just colors (kinda like `timg` but pixelated), depending on flags included. Oh, it uses ANSI BTW (like how I use arch BTW).
+Written in Go, `cine` first scales the input image/gif/video to images/frames of the same size as that of the terminal (which is retrived from `stty size`) and then converts those into ASCII and then prints them on the screen in a loop. The output can be displayed in the terminal with color glyphs or as grayscale or as just colors (kinda like `timg` but pixelated), depending on flags included. Oh, it uses ANSI BTW (like how I use arch BTW).
 
 ### Features
 - Convert images and videos to ASCII art.
@@ -12,7 +12,7 @@ Written in Go, `cine` first scales the input image/gif/video to images/frames of
 - Automatic resizing based on terminal dimensions.
 
 ## Installation
-Apart from the programming language (Go) itself, the program utilizes the `ffmpeg` for image processing which is called via `os.Exec` so `ffmpeg` should be in `PATH`.
+Apart from the programming language (Go) itself, the program utilizes `ffmpeg` for image processing and `stty` which are both called via `os.Exec` so both should be in `PATH`.
 
 ## Usage
 To run the program, use the following command format:
@@ -27,7 +27,10 @@ go run . -file <path_to_image_or_video> [-save <output_directory>] [-grayscale] 
 | `-no-font` | If specified, only colors the background without printing any text characters. |
 | `-charset` | Custom characters to use for ASCII representation (from lightest to darkest pixels). |
 
-Example: `go run . -file furret.jpg` will print ![furret example](./GitHub%20Assets/furret.png)
+### Examples
+`go run . -file furret.jpg` will print ![furret example](./GitHub%20Assets/furret.png)
+
+`go run . -file furret-dance.gif` will print ![furret dance example](./GitHub%20Assets/furret-dance.mp4)
 
 ## Known bugs & FAQs
 1. **Why are there extra black pixels?** or **The output looks the same as last one even after resizing the terminal. Why?**
